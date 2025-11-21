@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Kinect Streaming Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <h1><i class="fas fa-video"></i> Kinect Streaming Dashboard</h1>
+        </div>
+        <div class="header-right">
+            <button id="settingsBtn" class="btn btn-secondary">
+                <i class="fas fa-cog"></i> Settings
+            </button>
+            <button id="refreshBtn" class="btn btn-secondary">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-indicator"></span>
+                <span class="status-text">Checking...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <button id="addCameraBtn" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Camera
+                </button>
+                <select id="layoutSelect" class="select-input">
+                    <option value="grid-2x2">2x2 Grid</option>
+                    <option value="grid-3x2">3x2 Grid</option>
+                    <option value="grid-1x1">Single Camera</option>
+                    <option value="grid-custom">Custom</option>
+                </select>
+                <button id="startAllBtn" class="btn btn-success">
+                    <i class="fas fa-play"></i> Start All
+                </button>
+                <button id="stopAllBtn" class="btn btn-danger">
+                    <i class="fas fa-stop"></i> Stop All
+                </button>
+            </div>
+            <div class="toolbar-right">
+                <button id="toggleStatsBtn" class="btn btn-secondary">
+                    <i class="fas fa-chart-line"></i> Stats
+                </button>
+                <button id="fullscreenBtn" class="btn btn-secondary">
+                    <i class="fas fa-expand"></i> Fullscreen
+                </button>
+            </div>
+        </div>
+
+        <!-- Camera Grid -->
+        <div id="cameraGrid" class="camera-grid grid-3x2">
+            <!-- Camera cards will be inserted here dynamically -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state">
+            <i class="fas fa-video-slash"></i>
+            <h2>No Cameras Added</h2>
+            <p>Click "Add Camera" to start monitoring your Kinect streams</p>
+            <button class="btn btn-primary" onclick="document.getElementById('addCameraBtn').click()">
+                <i class="fas fa-plus"></i> Add Your First Camera
+            </button>
+        </div>
+    </main>
+
+    <!-- Status Bar -->
+    <footer class="status-bar">
+        <div class="status-item">
+            <i class="fas fa-camera"></i>
+            <span>Cameras: <strong id="totalCameras">0</strong></span>
+        </div>
+        <div class="status-item">
+            <i class="fas fa-signal"></i>
+            <span>Streaming: <strong id="streamingCount">0</strong></span>
+        </div>
+        <div class="status-item">
+            <i class="fas fa-record-vinyl"></i>
+            <span>Recording: <strong id="recordingCount">0</strong></span>
+        </div>
+        <div class="status-item">
+            <i class="fas fa-server"></i>
+            <span>Servers: <strong id="serversCount">0</strong></span>
+        </div>
+    </footer>
+
+    <!-- Add Camera Modal -->
+    <div id="addCameraModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-plus-circle"></i> Add Camera</h2>
+                <button class="modal-close" onclick="closeModal('addCameraModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addCameraForm">
+                    <div class="form-group">
+                        <label for="cameraName">Camera Name</label>
+                        <input type="text" id="cameraName" placeholder="e.g., Server A - Camera 1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="serverIP">Server IP Address</label>
+                        <input type="text" id="serverIP" placeholder="e.g., 192.168.1.100" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="apiPort">API Port</label>
+                        <input type="number" id="apiPort" value="8000" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="rtspPort">RTSP Port</label>
+                        <input type="number" id="rtspPort" value="8554" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="hlsPort">HLS Port</label>
+                        <input type="number" id="hlsPort" value="8888" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="deviceId">Device ID</label>
+                        <input type="number" id="deviceId" value="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableRGB" checked> Enable RGB Stream
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableDepth" checked> Enable Depth Stream
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableIR"> Enable IR Stream
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('addCameraModal')">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Camera
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> Settings</h2>
+                <button class="modal-close" onclick="closeModal('settingsModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="general">General</button>
+                    <button class="tab-btn" data-tab="streaming">Streaming</button>
+                    <button class="tab-btn" data-tab="recording">Recording</button>
+                    <button class="tab-btn" data-tab="advanced">Advanced</button>
+                </div>
+
+                <!-- General Tab -->
+                <div class="tab-content active" id="general-tab">
+                    <h3>General Settings</h3>
+                    <div class="form-group">
+                        <label for="refreshInterval">Auto Refresh Interval (seconds)</label>
+                        <input type="number" id="refreshInterval" value="5" min="1" max="60">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="autoReconnect" checked> Auto-reconnect on disconnect
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="showNotifications" checked> Show notifications
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="theme">Theme</label>
+                        <select id="theme">
+                            <option value="dark">Dark</option>
+                            <option value="light">Light</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Streaming Tab -->
+                <div class="tab-content" id="streaming-tab">
+                    <h3>Streaming Settings</h3>
+                    <div class="form-group">
+                        <label for="streamProtocol">Preferred Protocol</label>
+                        <select id="streamProtocol">
+                            <option value="hls">HLS (Better Compatibility)</option>
+                            <option value="webrtc">WebRTC (Lower Latency)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="bufferSize">Buffer Size (seconds)</label>
+                        <input type="number" id="bufferSize" value="3" min="0" max="10">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="autoStartStreams"> Auto-start streams on load
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Recording Tab -->
+                <div class="tab-content" id="recording-tab">
+                    <h3>Recording Settings</h3>
+                    <div class="form-group">
+                        <label for="recordingQuality">Recording Quality</label>
+                        <select id="recordingQuality">
+                            <option value="high">High (Best Quality)</option>
+                            <option value="medium" selected>Medium (Balanced)</option>
+                            <option value="low">Low (Smaller Files)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="recordingFormat">Recording Format</label>
+                        <select id="recordingFormat">
+                            <option value="webm">WebM</option>
+                            <option value="mp4">MP4 (if supported)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="autoSaveRecordings" checked> Auto-save recordings
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Advanced Tab -->
+                <div class="tab-content" id="advanced-tab">
+                    <h3>Advanced Settings</h3>
+                    <div class="form-group">
+                        <label for="maxRetries">Connection Retry Attempts</label>
+                        <input type="number" id="maxRetries" value="3" min="0" max="10">
+                    </div>
+                    <div class="form-group">
+                        <label for="requestTimeout">Request Timeout (ms)</label>
+                        <input type="number" id="requestTimeout" value="5000" min="1000" max="30000">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="debugMode"> Enable Debug Mode
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-danger" id="clearDataBtn">
+                            <i class="fas fa-trash"></i> Clear All Data
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="exportConfigBtn">
+                            <i class="fas fa-download"></i> Export Config
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="importConfigBtn">
+                            <i class="fas fa-upload"></i> Import Config
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('settingsModal')">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" id="saveSettingsBtn">
+                        <i class="fas fa-save"></i> Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="api.js"></script>
+    <script src="video-player.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
