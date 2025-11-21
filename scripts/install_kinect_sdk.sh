@@ -33,25 +33,39 @@ if [ "$AUTO_ACCEPT_EULA" = true ]; then
     echo -e "${GREEN}✓ EULA pre-accepted${NC}"
 fi
 
-# Add Microsoft's package repository
-echo "Adding Microsoft package repository..."
-if [ ! -f /etc/apt/sources.list.d/microsoft-prod.list ]; then
-    curl -sSL https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
-    
-    # Use appropriate Ubuntu version for repository
-    # Note: For Ubuntu 24.04, we use 22.04 repository as 24.04 is not yet available
-    REPO_VERSION="$UBUNTU_VERSION"
-    if [[ "$UBUNTU_VERSION" == "24.04" ]]; then
-        echo -e "${YELLOW}Note: Using Ubuntu 22.04 repository for Ubuntu 24.04${NC}"
-        REPO_VERSION="22.04"
-    fi
-    
-    apt-add-repository -y "deb https://packages.microsoft.com/ubuntu/${REPO_VERSION}/prod ${REPO_VERSION} main"
-fi
+# Download and install Azure Kinect SDK packages directly (bypassing repository issues)
+echo "Downloading Azure Kinect SDK packages directly from Microsoft..."
+cd /tmp
 
-# Update package list (non-interactive)
-echo "Updating package lists..."
-DEBIAN_FRONTEND=noninteractive apt-get update -qq
+# Define package versions and URLs (using Ubuntu 18.04 packages which work on 24.04)
+K4A_VERSION="1.4.2"
+BASE_URL="https://packages.microsoft.com/ubuntu/18.04/prod/pool/main"
+
+# Package URLs (corrected paths based on actual repository structure)
+LIBK4A_URL="${BASE_URL}/libk/libk4a1.4/libk4a1.4_${K4A_VERSION}_amd64.deb"
+LIBK4A_DEV_URL="${BASE_URL}/libk/libk4a1.4-dev/libk4a1.4-dev_${K4A_VERSION}_amd64.deb"
+K4A_TOOLS_URL="${BASE_URL}/k/k4a-tools/k4a-tools_${K4A_VERSION}_amd64.deb"
+
+# Download packages
+echo "  Downloading libk4a1.4..."
+wget -q "${LIBK4A_URL}" -O libk4a1.4_${K4A_VERSION}_amd64.deb || {
+    echo -e "${RED}✗ Failed to download libk4a1.4${NC}"
+    exit 1
+}
+
+echo "  Downloading libk4a1.4-dev..."
+wget -q "${LIBK4A_DEV_URL}" -O libk4a1.4-dev_${K4A_VERSION}_amd64.deb || {
+    echo -e "${RED}✗ Failed to download libk4a1.4-dev${NC}"
+    exit 1
+}
+
+echo "  Downloading k4a-tools..."
+wget -q "${K4A_TOOLS_URL}" -O k4a-tools_${K4A_VERSION}_amd64.deb || {
+    echo -e "${RED}✗ Failed to download k4a-tools${NC}"
+    exit 1
+}
+
+echo -e "${GREEN}✓ All packages downloaded${NC}"
 
 # Handle libsoundio1 for Ubuntu 24.04
 if [[ "$UBUNTU_VERSION" == "24.04" ]]; then
@@ -62,7 +76,6 @@ if [[ "$UBUNTU_VERSION" == "24.04" ]]; then
         echo "libsoundio1 not available in Ubuntu 24.04 repositories"
         echo "Downloading from Ubuntu 22.04 (Jammy) repository..."
         
-        cd /tmp
         wget -q http://archive.ubuntu.com/ubuntu/pool/universe/libs/libsoundio/libsoundio1_1.1.0-1_amd64.deb
         
         if [ -f libsoundio1_1.1.0-1_amd64.deb ]; then
@@ -97,17 +110,33 @@ if [[ "$UBUNTU_VERSION" != "24.04" ]]; then
     fi
 fi
 
-# Install Azure Kinect Sensor SDK
-echo "Installing Azure Kinect Sensor SDK..."
-DEBIAN_FRONTEND=noninteractive apt-get install -y libk4a1.4 libk4a1.4-dev k4a-tools
+# Install Azure Kinect Sensor SDK packages
+echo "Installing Azure Kinect Sensor SDK packages..."
+cd /tmp
+
+# Install packages in order (dependencies first)
+echo "  Installing libk4a1.4 (runtime library)..."
+DEBIAN_FRONTEND=noninteractive dpkg -i libk4a1.4_${K4A_VERSION}_amd64.deb || true
+apt-get install -f -y  # Fix any dependency issues
+
+echo "  Installing libk4a1.4-dev (development headers)..."
+DEBIAN_FRONTEND=noninteractive dpkg -i libk4a1.4-dev_${K4A_VERSION}_amd64.deb || true
+apt-get install -f -y  # Fix any dependency issues
+
+echo "  Installing k4a-tools..."
+DEBIAN_FRONTEND=noninteractive dpkg -i k4a-tools_${K4A_VERSION}_amd64.deb || true
+apt-get install -f -y  # Fix any dependency issues
+
+# Clean up downloaded packages
+rm -f libk4a1.4_${K4A_VERSION}_amd64.deb libk4a1.4-dev_${K4A_VERSION}_amd64.deb k4a-tools_${K4A_VERSION}_amd64.deb
 
 # Verify installation
 if dpkg -l | grep -q libk4a1.4; then
     echo -e "${GREEN}✓ Azure Kinect SDK installed successfully${NC}"
     
     # Show installed version
-    K4A_VERSION=$(dpkg -l | grep libk4a1.4 | awk '{print $3}')
-    echo "  Version: $K4A_VERSION"
+    INSTALLED_VERSION=$(dpkg -l | grep libk4a1.4 | awk '{print $3}')
+    echo "  Version: $INSTALLED_VERSION"
     
     # Check depth engine library
     if [ -f /usr/lib/x86_64-linux-gnu/libk4a1.4/libdepthengine.so.2.0 ]; then

@@ -29,6 +29,28 @@ A comprehensive system for streaming RGB, Depth, IR, and Audio from Azure Kinect
 
 ## Quick Start
 
+### Option 1: Interactive Setup (Recommended)
+
+The easiest way to install and configure the system:
+
+```bash
+# Make script executable
+chmod +x interactive_setup.sh
+
+# Run interactive setup
+sudo ./interactive_setup.sh
+```
+
+The interactive setup will:
+- Guide you through all configuration options
+- Auto-detect your server IP and connected devices
+- Let you customize settings for your machine
+- Run the complete installation automatically
+
+See [INTERACTIVE_SETUP_GUIDE.md](INTERACTIVE_SETUP_GUIDE.md) for details.
+
+### Option 2: Manual Setup
+
 ### 1. Download and Prepare
 
 ```bash
@@ -38,7 +60,7 @@ git clone <repository-url> kinect-streaming-system
 cd kinect-streaming-system
 
 # Make scripts executable
-chmod +x setup.sh uninstall.sh test_installation.sh
+chmod +x setup.sh uninstall.sh test_installation.sh interactive_setup.sh
 chmod +x scripts/*.sh
 ```
 

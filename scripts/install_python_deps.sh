@@ -22,6 +22,10 @@ echo "Ubuntu version: $UBUNTU_VERSION"
 
 # Install Python3 and pip
 echo "Installing Python3 and build tools..."
+
+# Clean up any leftover Microsoft repository files that might cause apt-get update to fail
+rm -f /etc/apt/sources.list.d/*microsoft* /etc/apt/sources.list.d/archive_uri-https_packages_microsoft_com_ubuntu_*_prod-*.list 2>/dev/null || true
+
 DEBIAN_FRONTEND=noninteractive apt-get update -qq
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
     python3 \

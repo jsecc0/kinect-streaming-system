@@ -25,7 +25,7 @@ if dpkg -l | grep -q libk4a1.4; then
     echo -e "  ${GREEN}✓ Azure Kinect SDK installed${NC}"
 else
     echo -e "  ${RED}✗ Azure Kinect SDK not installed${NC}"
-    ((ERRORS++))
+    ERRORS=$((ERRORS + 1))
 fi
 
 # Check MediaMTX
@@ -36,11 +36,11 @@ if command -v mediamtx &> /dev/null; then
         echo -e "  ${GREEN}✓ MediaMTX service running${NC}"
     else
         echo -e "  ${YELLOW}⚠ MediaMTX service not running${NC}"
-        ((WARNINGS++))
+        WARNINGS=$((WARNINGS + 1))
     fi
 else
     echo -e "  ${RED}✗ MediaMTX not installed${NC}"
-    ((ERRORS++))
+    ERRORS=$((ERRORS + 1))
 fi
 
 # Check Python
@@ -58,15 +58,15 @@ if [ "$USE_VENV" = true ]; then
                 echo -e "  ${GREEN}✓ pyk4a installed in venv${NC}"
             else
                 echo -e "  ${RED}✗ pyk4a not found in venv${NC}"
-                ((ERRORS++))
+                ERRORS=$((ERRORS + 1))
             fi
         else
             echo -e "  ${RED}✗ Python not found in venv${NC}"
-            ((ERRORS++))
+            ERRORS=$((ERRORS + 1))
         fi
     else
         echo -e "  ${RED}✗ Virtual environment not found${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 else
     if command -v python3 &> /dev/null; then
@@ -74,7 +74,7 @@ else
         echo -e "  ${GREEN}✓ Python: $PYTHON_VERSION${NC}"
     else
         echo -e "  ${RED}✗ Python3 not installed${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 fi
 
@@ -91,7 +91,7 @@ if [ "$ENABLE_XVFB" = true ]; then
         fi
     else
         echo -e "  ${RED}✗ Xvfb not installed${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 fi
 
@@ -110,7 +110,7 @@ check_port() {
             echo -e "  ${GREEN}✓ Port $port ($name) - Used by our service${NC}"
         else
             echo -e "  ${YELLOW}⚠ Port $port ($name) - In use by: $PROCESS${NC}"
-            ((WARNINGS++))
+            WARNINGS=$((WARNINGS + 1))
         fi
     else
         echo -e "  ${GREEN}✓ Port $port ($name) - Available${NC}"
@@ -130,7 +130,7 @@ if [ $KINECT_COUNT -gt 0 ]; then
 else
     echo -e "  ${YELLOW}⚠ No Azure Kinect devices detected${NC}"
     echo "    Connect your device(s) before starting services"
-    ((WARNINGS++))
+    WARNINGS=$((WARNINGS + 1))
 fi
 
 # Check hardware encoding
@@ -142,7 +142,7 @@ if [ -f /tmp/hardware_detection.env ]; then
         echo -e "  ${GREEN}✓ Hardware encoder available: $RECOMMENDED_ENCODER${NC}"
     else
         echo -e "  ${YELLOW}⚠ No hardware encoder detected (will use software encoding)${NC}"
-        ((WARNINGS++))
+        WARNINGS=$((WARNINGS + 1))
     fi
 fi
 
@@ -159,7 +159,7 @@ if systemctl list-unit-files | grep -q kinect-streamer; then
     fi
 else
     echo -e "  ${YELLOW}⚠ kinect-streamer service not created${NC}"
-    ((WARNINGS++))
+    WARNINGS=$((WARNINGS + 1))
 fi
 
 # Check web dashboard
@@ -173,15 +173,15 @@ if [ -d "${INSTALL_DIR}/web" ]; then
             echo -e "  ${GREEN}✓ Dashboard files are not empty${NC}"
         else
             echo -e "  ${RED}✗ Dashboard files are empty${NC}"
-            ((ERRORS++))
+            ERRORS=$((ERRORS + 1))
         fi
     else
         echo -e "  ${RED}✗ Dashboard index.html not found${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 else
     echo -e "  ${RED}✗ Web dashboard directory not found${NC}"
-    ((ERRORS++))
+    ERRORS=$((ERRORS + 1))
 fi
 
 # Check configuration
@@ -190,7 +190,7 @@ if [ -f "${INSTALL_DIR}/config.env" ]; then
     echo -e "  ${GREEN}✓ Configuration file exists${NC}"
 else
     echo -e "  ${RED}✗ Configuration file not found${NC}"
-    ((ERRORS++))
+    ERRORS=$((ERRORS + 1))
 fi
 
 # Summary
@@ -225,4 +225,3 @@ else
 fi
 
 exit $EXIT_CODE
-EOF

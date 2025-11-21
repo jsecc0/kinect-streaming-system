@@ -29,6 +29,9 @@ if command -v Xvfb &> /dev/null; then
 else
     echo "Installing Xvfb..."
     
+    # Clean up any leftover Microsoft repository files that might cause apt-get update to fail
+    rm -f /etc/apt/sources.list.d/*microsoft* /etc/apt/sources.list.d/archive_uri-https_packages_microsoft_com_ubuntu_*_prod-*.list 2>/dev/null || true
+    
     # Update package list
     DEBIAN_FRONTEND=noninteractive apt-get update -qq
     
@@ -71,6 +74,11 @@ rm -f /tmp/.X98-lock 2>/dev/null || true
 # Create Xvfb helper script
 echo ""
 echo "Creating Xvfb helper scripts..."
+
+# Ensure required directories exist
+mkdir -p "${INSTALL_DIR}/scripts"
+mkdir -p "${INSTALL_DIR}/docs"
+mkdir -p "${LOG_DIR}"
 
 # Xvfb start script
 cat > "${INSTALL_DIR}/scripts/start_xvfb.sh" << 'XVFB_START'
